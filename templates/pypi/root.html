@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple index</title>
+    <style type="text/css">
+        a {
+          display: block;
+        }
+    </style>
+  </head>
+  <body>
+    {%- for package in packages %}
+    <a href="/repo/pypi/{{ reponame }}/{{ package }}/">{{ package }}</a>
+    {%- endfor %}
+  </body>
+</html>

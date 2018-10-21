@@ -1,0 +1,7 @@
+/testenv
+/test
+__pycache__
+/repobot.egg-info
+/build
+/dist
+/repos.db*

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple index</title>
+    <style type="text/css">
+        a {
+          display: block;
+        }
+    </style>
+  </head>
+  <body>
+    {%- for file in files %}
+    <a href="/repo/pypi/{{ reponame }}/{{ modulename }}/{{ file }}">{{ file }}</a>
+    {%- endfor %}
+  </body>
+</html>

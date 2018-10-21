@@ -1,0 +1,9 @@
+apt/*
+data/*
+dist/*
+out/*
+out2/*
+testenv/*
+testenv2/*
+test/*
+aptly/*
