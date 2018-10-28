@@ -1,7 +1,8 @@
 #!/bin/sh
 set -x
 
-chown -R repobot:repobot /data
 install -d /data/db -o repobot -g repobot || true
+install -d /data/data -o repobot -g repobot || true
+chown -R repobot:repobot /data/db /data/data
 
-exec sudo -Hu repobot repobotd --data-root /data --database /data/db/repos.db $@
+exec sudo -Hu repobot repobotd --data-root /data/data --database /data/db/repos.db $@
