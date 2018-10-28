@@ -1,6 +1,8 @@
 import cherrypy
 import logging
 from repobot.repos import RepoDb
+from repobot.provider import DuplicateException
+from repobot.replication import RepoReplicator
 
 
 class AppWeb(object):
@@ -9,11 +11,26 @@ class AppWeb(object):
 
     @cherrypy.expose
     def addpkg(self, provider, reponame, name, version, f, **params):
-        self.db.add_package(provider, reponame, name, version, f.filename, f.file, params)
+        try:
+            self.db.add_package(provider, reponame, name, version, f.filename, f.file, params)
+        except DuplicateException:
+            raise cherrypy.HTTPError(409, 'Package already exists')
 
     @cherrypy.expose
     def repo(self, provider, repo, *args):
         return self.db.browse_repo(provider, repo, args)
+
+    @cherrypy.expose
+    def index(self):
+        yield "<pre>"
+        with self.db.db.transaction() as c:
+            for provider, repos in c.root.repos.items():
+                for reponame, repo in repos.items():
+                    print(repo)
+                    for pkgname, versions in repo.packages.items():
+                        for version, pkg in versions.items():
+                            for fname in pkg.data["files"]:
+                                yield "{}/{}/{}/{}/{}\n".format(provider, reponame, pkgname, version, fname)
 
 
 class FlatDispatch(cherrypy.dispatch.Dispatcher):
@@ -38,6 +55,7 @@ def main():
     parser.add_argument('-p', '--port', default=8080, type=int, help="tcp port to listen on")
     parser.add_argument('-s', '--database', default="./repos.db", help="path to persistent database")
     parser.add_argument('-d', '--data-root', default="./data/", help="data storage dir")
+    parser.add_argument('-n', '--neighbors', nargs="+", default=[], help="Replication neighbor uris")
     parser.add_argument('--debug', action="store_true", help="enable development options")
 
     args = parser.parse_args()
@@ -46,6 +64,9 @@ def main():
                         format="%(asctime)-15s %(levelname)-8s %(filename)s:%(lineno)d %(message)s")
 
     db = RepoDb(args.database, args.data_root)
+    repl = RepoReplicator(db, args.data_root, args.neighbors)
+
+    repl.start()
 
     web = AppWeb(db)
 

@@ -28,6 +28,9 @@ class RepoPackage(persistent.Persistent):
         self.version = version
         self.data = pmap()
 
+    def __str__(self):
+        return "<RepoPackage {}@{}>".format(self.name, self.version)
+
 
 class RepoDb(object):
     def __init__(self, db_path, data_root):
@@ -38,13 +41,19 @@ class RepoDb(object):
         with self.db.transaction() as c:
             if "repos" not in c.root():
                 c.root.repos = BTrees.OOBTree.BTree()
+            if "sendqueue" not in c.root():
+                c.root.sendqueue = plist()
 
     def add_package(self, provider, reponame, pkgname, pkgversion, fname, fobj, params):
         with self.db.transaction() as c:
             repo = self._get_repo(c, provider, reponame)
             datadir = os.path.join(self.data_root, provider, reponame)
             provider = providers[repo.provider](self.db, repo, datadir)
-            provider.add_package(repo.get_package(pkgname, pkgversion), fname, fobj, params)
+            # Add the package
+            pkg = repo.get_package(pkgname, pkgversion)
+            provider.add_package(pkg, fname, fobj, params)
+            # Pack successfully added, queue the file for replication
+            c.root.sendqueue.append(("package", (repo, pkg, fname, params, )))
 
     def _get_repo(self, c, provider, name):
         if provider not in c.root.repos:

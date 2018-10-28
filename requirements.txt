@@ -1,5 +1,6 @@
 backports.functools-lru-cache==1.5
 BTrees==4.5.1
+certifi==2018.10.15
 chardet==3.0.4
 cheroot==6.5.2
 CherryPy==18.0.1
@@ -8,6 +9,7 @@ deb-pkg-tools==4.5
 executor==21.2
 fasteners==0.14.1
 humanfriendly==4.16.1
+idna==2.7
 jaraco.functools==1.20
 Jinja2==2.10
 MarkupSafe==1.0
@@ -19,9 +21,11 @@ property-manager==2.3.1
 python-debian==0.1.33
 python-memcached==1.59
 pytz==2018.5
+requests==2.20.0
 six==1.11.0
 tempora==1.13
 transaction==2.2.1
+urllib3==1.24
 verboselogs==1.7
 zc.lockfile==1.3.0
 ZConfig==3.3.0

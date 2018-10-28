@@ -43,6 +43,14 @@ apt-get install -y extpython-python3.6
 ```
 
 
+Replication
+-----------
+
+Repobot can automatically copy packages to neighbor repobot instances. Pass `-n` with one or more neighbor addresses in
+the format of `http://1.2.3.4:8080`. When new packages are submitted, they will be queued for replication. The server
+will periodically attempt to submit the package to each neighbor.
+
+
 Notes
 -----
 

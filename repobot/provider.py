@@ -5,6 +5,10 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import cherrypy
 
 
+class DuplicateException(Exception):
+    pass
+
+
 class PkgProvider(object):
     def __init__(self, db, repo, datadir):
         """
@@ -26,6 +30,12 @@ class PkgProvider(object):
         """
         raise NotImplementedError()
 
+    def get_path(self, pkgobj, fname):
+        """
+        Get the path to a package file in the repo
+        """
+        raise NotImplementedError()
+
 
 class PyPiProvider(PkgProvider):
     def add_package(self, pkgobj, fname, fobj, params):
@@ -33,7 +43,7 @@ class PyPiProvider(PkgProvider):
             pkgobj.data["files"] = plist()
 
         if fname in pkgobj.data["files"]:
-            raise Exception("File {} already in package {}-{}".format(fname, pkgobj.name, pkgobj.version))
+            raise DuplicateException("File {} already in package {}-{}".format(fname, pkgobj.name, pkgobj.version))
 
         pkgdir = os.path.join(self.dir, pkgobj.name)
         os.makedirs(pkgdir, exist_ok=True)
@@ -64,6 +74,10 @@ class PyPiProvider(PkgProvider):
         elif len(args) == 2:  # fetch file
             fpath = os.path.join(self.dir, args[0], args[1])
             return cherrypy.lib.static.serve_file(os.path.abspath(fpath), "application/octet-stream")
+
+    def get_path(self, pkgobj, fname):
+        assert fname in pkgobj.data["files"]
+        return os.path.join(self.dir, pkgobj.name, fname)
 
 
 from subprocess import check_call, check_output, Popen, PIPE
@@ -105,8 +119,7 @@ class AptProvider(PkgProvider):
         if "files" not in pkgobj.data:
             pkgobj.data["files"] = plist()
         if fname in pkgobj.data["files"]:
-            # raise Exception("File {} already in package {}-{}".format(fname, pkgobj.name, pkgobj.version))
-            pass
+            raise DuplicateException("File {} already in package {}-{}".format(fname, pkgobj.name, pkgobj.version))
 
         with AptlyConfig(self.dir) as conf:
             if not os.path.exists(os.path.join(self.dir, "db")):
@@ -193,6 +206,10 @@ Expire-Date: 0
     @property
     def _gpg_dir(self):
         return os.path.join(self.dir, "gpg")
+
+    def get_path(self, pkgobj, fname):
+        assert fname in pkgobj.data["files"]
+        return os.path.join(self.dir, "public", "pool", "main", pkgobj.name[0], pkgobj.name, fname)
 
 
 providers = {"pypi": PyPiProvider,
