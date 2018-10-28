@@ -148,10 +148,17 @@ class AptProvider(PkgProvider):
         # TODO validate deb file name version against user passed version
 
     def browse(self, args):
+        if not args:
+            with open(self.pubkeypath) as f:
+                pubkey_body = f.read()
+            return "<plaintext>{}\n\nSigning key:\n\n\n{}".format(self._get_gpg_info(), pubkey_body)
         fpath = os.path.abspath(os.path.join(self.dir, "public", *args))
         if not os.path.exists(fpath):
             raise cherrypy.HTTPError(404)
         return cherrypy.lib.static.serve_file(fpath)
+
+    def _get_gpg_info(self):
+        return check_output(["gpg", "--list-keys"], env=self._env).decode("UTF-8")
 
     def _generate_gpg_key(self):
         """
@@ -188,11 +195,14 @@ Expire-Date: 0
         assert proc.returncode == 0
 
     def _export_pubkey(self):
-        keypath = os.path.join(self.dir, "public", "repo.key")
-        if not os.path.exists(keypath):
+        if not os.path.exists(self.pubkeypath):
             keydata = check_output(["gpg", "--export", "--armor", "aptmaster@localhost"], env=self._env)
-            with open(keypath, "wb") as f:
+            with open(self.pubkeypath, "wb") as f:
                 f.write(keydata)
+
+    @property
+    def pubkeypath(self):
+        return os.path.join(self.dir, "public", "repo.key")
 
     @property
     def _env(self):
@@ -205,7 +215,7 @@ Expire-Date: 0
 
     @property
     def _gpg_dir(self):
-        return os.path.join(self.dir, "gpg")
+        return os.path.normpath(os.path.join(self.dir, "gpg"))
 
     def get_path(self, pkgobj, fname):
         assert fname in pkgobj.data["files"]
