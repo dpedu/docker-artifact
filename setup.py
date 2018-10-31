@@ -21,6 +21,7 @@ setup(name='repobot',
       install_requires=[
           'ZODB==5.5.0',
           'CherryPy==18.0.1',
-          'Jinja2==2.10'
+          'Jinja2==2.10',
+          'requests==2.20.0'
       ],
       zip_safe=False)
