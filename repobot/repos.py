@@ -4,6 +4,8 @@ import persistent
 import BTrees.OOBTree
 from repobot.provider import providers
 import os
+from threading import Lock
+from collections import defaultdict
 from repobot.common import plist, pmap
 
 
@@ -37,6 +39,7 @@ class RepoDb(object):
         self.storage = ZODB.FileStorage.FileStorage(db_path)
         self.db = ZODB.DB(self.storage)
         self.data_root = data_root
+        self.repolocks = defaultdict(lambda: Lock())
 
         with self.db.transaction() as c:
             if "repos" not in c.root():
@@ -45,15 +48,16 @@ class RepoDb(object):
                 c.root.sendqueue = plist()
 
     def add_package(self, provider, reponame, pkgname, pkgversion, fname, fobj, params):
-        with self.db.transaction() as c:
-            repo = self._get_repo(c, provider, reponame)
-            datadir = os.path.join(self.data_root, provider, reponame)
-            provider = providers[repo.provider](self.db, repo, datadir)
-            # Add the package
-            pkg = repo.get_package(pkgname, pkgversion)
-            provider.add_package(pkg, fname, fobj, params)
-            # Pack successfully added, queue the file for replication
-            c.root.sendqueue.append(("package", (repo, pkg, fname, params, )))
+        with self.repolocks[(provider, reponame)]:
+            with self.db.transaction() as c:
+                repo = self._get_repo(c, provider, reponame)
+                datadir = os.path.join(self.data_root, provider, reponame)
+                provider = providers[repo.provider](self.db, repo, datadir)
+                # Add the package
+                pkg = repo.get_package(pkgname, pkgversion)
+                provider.add_package(pkg, fname, fobj, params)
+                # Pack successfully added, queue the file for replication
+                c.root.sendqueue.append(("package", (repo, pkg, fname, params, )))
 
     def _get_repo(self, c, provider, name):
         if provider not in c.root.repos:
