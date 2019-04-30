@@ -17,11 +17,7 @@ setup(name='repobot',
           ]
       },
       include_package_data=True,
-      package_data={'repobot': ['../templates/pypi/*.html']},
+      # package_data={'repobot': ['../templates/pypi/*.html']},
       install_requires=[
-          'ZODB==5.5.0',
-          'CherryPy==18.0.1',
-          'Jinja2==2.10',
-          'requests==2.20.0'
       ],
       zip_safe=False)
