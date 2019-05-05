@@ -336,7 +336,7 @@ class AptWeb(object):
                   "<a href='/repo/apt/{reponame}?regen=1'>regen</a><hr/>".format(reponame=repo.name)
 
             for dist in db().query(AptDist).filter(AptDist.repo == repo).order_by(AptDist.name).all():
-                yield "<a href='/repo/apt/{reponame}/dists/{name}'>{name}</a>: <a href='/repo/apt/{reponame}/dists/{name}/main/indexname/Packages'>Packages</a> <a href='/repo/apt/{reponame}/dists/{name}/Release'>Release</a> <a href='/repo/apt/{reponame}/dists/{name}/Release.gpg'>Release.gpg</a><br />".format(reponame=repo.name, name=dist.name)
+                yield "<a href='/repo/apt/{reponame}/dists/{name}'>{name}</a>: <a href='/repo/apt/{reponame}/dists/{name}/main/indexname/Packages'>Packages</a> <a href='/repo/apt/{reponame}/dists/{name}/Release'>Release</a> <a href='/repo/apt/{reponame}/dists/{name}/Release.gpg'>Release.gpg</a> <a href='/repo/apt/{reponame}/dists/{name}/install'>install</a><br />".format(reponame=repo.name, name=dist.name)
                 if regen:
                     self.base.regen_dist(dist.id)
 
@@ -380,6 +380,13 @@ class AptDists(object):
                 return dist.release_cache
             elif target == "Release.gpg":
                 return dist.sig_cache
+            elif target == "install":
+
+                return """#!/bin/sh -ex
+wget -qO- {scheme}://{host}/repo/apt/{reponame}/pubkey | apt-key add -
+echo 'deb {scheme}://{host}/repo/apt/{reponame}/ {dist} main' | tee /etc/apt/sources.list.d/{reponame}-{dist}.list
+apt-get update
+""".format(scheme=cherrypy.request.scheme, host=cherrypy.request.headers['Host'], reponame=repo.name, dist=dist.name)
             else:
                 raise cherrypy.HTTPError(404)
 
