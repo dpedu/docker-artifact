@@ -9,8 +9,8 @@
     </style>
   </head>
   <body>
-    {%- for file in files %}
-    <a href="/repo/pypi/{{ reponame }}/{{ modulename }}/{{ file }}">{{ file }}</a>
+    {%- for pkg in pkgs %}
+    <a href="/repo/pypi/{{ repo.name }}/{{ distname }}/{{ pkg.fname }}">{{ pkg.fname }}</a>
     {%- endfor %}
   </body>
 </html>

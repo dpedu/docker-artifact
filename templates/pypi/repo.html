@@ -9,8 +9,8 @@
     </style>
   </head>
   <body>
-    {%- for repo in repos %}
-    <a href="/repo/pypi/{{ repo.name }}/">{{ repo.name }}</a>
+    {%- for dist in dists %}
+    <a href="/repo/pypi/{{ repo.name }}/{{ dist.dist_norm }}/">{{ dist.dist_norm }}</a>
     {%- endfor %}
   </body>
 </html>

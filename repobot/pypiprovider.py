@@ -2,15 +2,18 @@ import cherrypy
 import hashlib
 import json
 import os
-import queue
 import re
 from email import message_from_string
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import Column, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import String, Integer, Text
 from tempfile import TemporaryDirectory
 from wheel import wheelfile
 from repobot.tables import Base, db
+
+
+APPROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 
 
 def parse_wheel(path):
@@ -80,6 +83,10 @@ def parse_wheel(path):
             "size": fsize}
 
 
+def normalize(name):
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 # https://stackoverflow.com/a/5967539
 def sort_atoi(text):
     return int(text) if text.isdigit() else text
@@ -112,12 +119,13 @@ class PipPackage(Base):
 
     # see https://github.com/pypa/wheel/blob/master/wheel/wheelfile.py
     # {distribution}-{version}(-{build tag})?-{python tag}-{abi tag}-{platform tag}.whl
-    dist = Column(String(length=128), nullable=False)      # 'requests'
-    version = Column(String(length=64), nullable=False)    # '2.14.2'
-    build = Column(String(length=64), nullable=True)       # '1234'
-    python = Column(String(length=64), nullable=False)     # 'cp37'
-    api = Column(String(length=64), nullable=False)        # 'cp37m'
-    platform = Column(String(length=256), nullable=False)  # 'manylinux1_x86_64'
+    dist = Column(String(length=128), nullable=False)       # 'requests'
+    dist_norm = Column(String(length=128), nullable=False)  # 'requests'
+    version = Column(String(length=64), nullable=False)     # '2.14.2'
+    build = Column(String(length=64), nullable=True)        # '1234'
+    python = Column(String(length=64), nullable=False)      # 'cp37'
+    api = Column(String(length=64), nullable=False)         # 'cp37m'
+    platform = Column(String(length=256), nullable=False)   # 'manylinux1_x86_64'
 
     fname = Column(String(length=256), nullable=False)
 
@@ -168,13 +176,9 @@ class PypiProvider(object):
         self.bucket = bucket
         """base path within the s3 bucket"""
         self.basepath = "data/provider/pip"
-        """queue entries are tuples containing the database id of the dist to regenerate indexes and signatures for"""
-        self.queue = queue.Queue()
 
-        return
-
-        cherrypy.tree.mount(PipWeb(self), "/repo/pop", {'/': {'tools.trailing_slash.on': False,
-                                                              'tools.db.on': True}})
+        cherrypy.tree.mount(PipWeb(self), "/repo/pypi", {'/': {'tools.trailing_slash.on': False,
+                                                               'tools.db.on': True}})
 
         # ensure bucket exists
         #TODO bucket creation should happen in server.py
@@ -206,6 +210,7 @@ class PypiProvider(object):
             # add to db
             pkg = PipPackage(repo=repo,
                              dist=metadata["fields"]["dist"],
+                             dist_norm=normalize(metadata["fields"]["dist"]),  # index me ?
                              version=metadata["fields"]["version"],
                              build=metadata["fields"]["build"],
                              python=metadata["fields"]["python"],
@@ -230,13 +235,62 @@ class PypiProvider(object):
             yield json.dumps(metadata, indent=4)
 
 
-@cherrypy.popargs("reponame")
+@cherrypy.popargs("reponame", "distname", "filename")
 class PipWeb(object):
     def __init__(self, base):
         self.base = base
-        # self.dists = AptDists(base)
-        # self.packages = AptFiles(base)
+
+        template_dir = "templates" if os.path.exists("templates") else os.path.join(APPROOT, "templates")
+        self.tpl = Environment(loader=FileSystemLoader(template_dir),
+                               autoescape=select_autoescape(['html', 'xml']))
+        self.tpl.filters.update(normalize=normalize)
 
     @cherrypy.expose
-    def index(self, reponame=None):
-        yield "viewing repo {}".format(reponame)
+    def index(self, reponame=None, distname=None, filename=None):
+        if filename:
+            return self.handle_download(reponame, distname, filename)
+        else:
+            return self.handle_navigation(reponame, distname, filename)
+
+    def handle_navigation(self, reponame=None, distname=None, filename=None):
+        if reponame:
+            repo = get_repo(db(), reponame, create_ok=False)
+            if distname:
+                yield self.tpl.get_template("pypi/dist.html") \
+                    .render(repo=repo,
+                            pkgs=db().query(PipPackage).filter(PipPackage.repo == repo,
+                                                               PipPackage.dist_norm == distname).
+                            order_by(PipPackage.version).all(),
+                            distname=normalize(distname))
+                return
+
+            yield self.tpl.get_template("pypi/repo.html") \
+                .render(repo=repo,
+                        dists=db().query(PipPackage).filter(PipPackage.repo == repo).order_by(PipPackage.dist).all())
+            return
+
+        yield self.tpl.get_template("pypi/root.html") \
+            .render(repos=db().query(PipRepo).order_by(PipRepo.name).all())
+
+    def handle_download(self, reponame, distname, filename):
+        repo = get_repo(db(), reponame, create_ok=False)
+        pkg = db().query(PipPackage).filter(PipPackage.repo == repo, PipPackage.fname == filename).first()
+        if not pkg:
+            raise cherrypy.HTTPError(404)
+        dpath = os.path.join(self.base.basepath, "repos", repo.name, "wheels", pkg.fname[0], pkg.fname)
+
+        response = self.base.s3.get_object(Bucket=self.base.bucket, Key=dpath)
+
+        cherrypy.response.headers["Content-Type"] = "binary/octet-stream"
+        cherrypy.response.headers["Content-Length"] = response["ContentLength"]
+
+        def stream():
+            while True:
+                data = response["Body"].read(65535)
+                if not data:
+                    return
+                yield data
+
+        return stream()
+
+    handle_download._cp_config = {'response.stream': True}

@@ -9,7 +9,9 @@ CherryPy==18.1.1
 cryptography==2.6.1
 docutils==0.14
 jaraco.functools==2.0
+Jinja2==2.10.1
 jmespath==0.9.4
+MarkupSafe==1.1.1
 more-itertools==7.0.0
 PGPy==0.4.1
 portend==2.4
@@ -20,7 +22,6 @@ PyMySQL==0.9.3
 python-dateutil==2.8.0
 python-gnupg==0.4.4
 pytz==2019.1
--e git+ssh://git@git.davepedu.com:223/dave/docker-artifact.git@48de79c18776e77bbd9b956afc27a872efeb0e9f#egg=repobot
 s3transfer==0.2.0
 singledispatch==3.4.0.3
 six==1.12.0
