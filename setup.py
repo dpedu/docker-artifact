@@ -4,10 +4,14 @@ from setuptools import setup
 from repobot import __version__
 
 
+with open("requirements.txt") as f:
+    requirements = f.readlines()
+
+
 setup(name='repobot',
       version=__version__,
       description='server for build artifact storage',
-      url='',
+      url='https://git.davepedu.com/dave/docker-artifact',
       author='dpedu',
       author_email='dave@davepedu.com',
       packages=['repobot'],
@@ -18,6 +22,6 @@ setup(name='repobot',
       },
       include_package_data=True,
       # package_data={'repobot': ['../templates/pypi/*.html']},
-      install_requires=[
-      ],
+      install_requires=requirements,
+      package_data={'repobot': ['../templates/pypi/*.html']},
       zip_safe=False)
