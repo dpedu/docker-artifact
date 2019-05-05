@@ -71,6 +71,9 @@ def main():
         'server.show_tracebacks': True,
         'log.screen': False,
         'engine.autoreload.on': args.debug,
+        'server.max_request_body_size': 0,
+        'server.socket_timeout': 3600,
+        'response.timeout': 3600
     })
 
     def signal_handler(signum, stack):
