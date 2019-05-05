@@ -44,6 +44,20 @@ apt-get update
 ```
 
 
+CLI
+---
+
+Building on the rest endpoints above:
+
+Apt:
+
+* `rpcli -s http://localhost:8080 upload -y apt -f extpython-python3.6_3.6.7_amd64.deb_trusty -r exttest -p extpython-python3.6 -i 3.6.7 -a dist=trusty`
+
+Python:
+
+* `rpcli -s http://localhost:8080 upload -y pypi -f tensorflow-2.0.0a0-cp37-cp37m-manylinux1_x86_64.whl -r ttest2 -p tensorflow -i 2.0.0a0`
+
+
 Notes
 -----
 
