@@ -5,7 +5,7 @@ from repobot import __version__
 
 
 with open("requirements.txt") as f:
-    requirements = f.readlines()
+    requirements = [l for l in f.readlines() if not l.startswith("-")]
 
 
 setup(name='repobot',
@@ -21,7 +21,6 @@ setup(name='repobot',
           ]
       },
       include_package_data=True,
-      # package_data={'repobot': ['../templates/pypi/*.html']},
       install_requires=requirements,
       package_data={'repobot': ['../templates/pypi/*.html']},
       zip_safe=False)

@@ -7,3 +7,5 @@ testenv/*
 testenv2/*
 test/*
 aptly/*
+wheel/*
+dist/*

@@ -195,7 +195,7 @@ class PypiProvider(object):
 
             # s3 path - repos/<reponame>/wheels/f/foo.wheel
             dpath = os.path.join(self.basepath, "repos", repo.name, "wheels",
-                                 metadata["wheelname"][0], metadata["wheelname"])
+                                 metadata["wheelname"][0].lower(), metadata["wheelname"])
 
             files = self.s3.list_objects(Bucket=self.bucket, Prefix=dpath).get("Contents")
             if files:
@@ -278,7 +278,7 @@ class PipWeb(object):
         if not pkg:
             raise cherrypy.HTTPError(404)
 
-        dpath = os.path.join(self.base.basepath, "repos", repo.name, "wheels", pkg.fname[0], pkg.fname)
+        dpath = os.path.join(self.base.basepath, "repos", repo.name, "wheels", pkg.fname[0].lower(), pkg.fname)
 
         if str(cherrypy.request.method) == "DELETE":
             db().delete(pkg)
