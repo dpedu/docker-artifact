@@ -266,11 +266,19 @@ class PipWeb(object):
 
             yield self.tpl.get_template("pypi/repo.html") \
                 .render(repo=repo,
-                        dists=db().query(PipPackage).filter(PipPackage.repo == repo).order_by(PipPackage.dist).all())
+                        dists=self._get_dists(repo))
             return
 
         yield self.tpl.get_template("pypi/root.html") \
             .render(repos=db().query(PipRepo).order_by(PipRepo.name).all())
+
+    def _get_dists(self, repo):
+        lastdist = None
+        for dist in db().query(PipPackage).filter(PipPackage.repo == repo).order_by(PipPackage.dist).all():
+            if lastdist and dist.dist == lastdist:
+                continue
+            yield dist
+            lastdist = dist.dist
 
     def handle_download(self, reponame, distname, filename):
         repo = get_repo(db(), reponame, create_ok=False)
