@@ -10,7 +10,7 @@
   </head>
   <body>
     {%- for pkg in pkgs %}
-    <a href="/repo/pypi/{{ repo.name }}/{{ distname }}/{{ pkg.fname }}">{{ pkg.fname }}</a>
+    <a href="/repo/pypi/{{ repo.name }}/{{ distname }}/{{ pkg.fname }}#sha256={{ pkg.sha256 }}">{{ pkg.fname }}</a>
     {%- endfor %}
   </body>
 </html>
