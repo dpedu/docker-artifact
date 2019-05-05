@@ -1,12 +1,13 @@
+import boto3
 import cherrypy
 import logging
-from repobot.tables import get_engine, SAEnginePlugin, SATool
-
+import os
+import sqlalchemy
+from botocore.client import Config as BotoConfig
 from repobot.aptprovider import AptProvider
 from repobot.pypiprovider import PypiProvider
-
-import boto3
-from botocore.client import Config as BotoConfig
+from repobot.tables import SAEnginePlugin, SATool
+from urllib.parse import urlparse
 
 
 class AppWeb(object):
@@ -32,32 +33,55 @@ def main():
     import argparse
     import signal
 
-    parser = argparse.ArgumentParser(description="irc web client server")
-    parser.add_argument('-p', '--port', default=8080, type=int, help="tcp port to listen on")
-    parser.add_argument('-s', '--database', help="mysql connection string")
+    parser = argparse.ArgumentParser(description="package storage database")
+    parser.add_argument('-p', '--port', default=8080, type=int, help="http port to listen on")
+    parser.add_argument('-d', '--database', help="mysql+pymysql:// connection string",
+                        default=os.environ.get("DATABASE_URL"))
+    parser.add_argument('-s', '--s3', help="http:// or https:// connection string",
+                        default=os.environ.get("S3_URL"))
     parser.add_argument('--debug', action="store_true", help="enable development options")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO if args.debug else logging.WARNING,
                         format="%(asctime)-15s %(levelname)-8s %(filename)s:%(lineno)d %(message)s")
 
-    dbcon = get_engine()
+    if not args.database:
+        parser.error("--database or DATABASE_URL required")
+    if not args.s3:
+        parser.error("--s3 or S3_URL required")
 
+    # set up database client
+    dbcon = sqlalchemy.create_engine(args.database, echo=args.debug, encoding="utf8")
     SAEnginePlugin(cherrypy.engine, dbcon).subscribe()
     cherrypy.tools.db = SATool()
 
-    s3 = boto3.client('s3', config=BotoConfig(signature_version='s3v4'), region_name='us-east-1',
-                      endpoint_url='',
-                      aws_access_key_id='',
-                      aws_secret_access_key='')
+    # set up s3 client
+    s3url = urlparse(args.s3)
+    s3args = {"config": BotoConfig(signature_version='s3v4')}
 
-    providers = {"apt": AptProvider(dbcon, s3),
-                 "pypi": PypiProvider(dbcon, s3)}
+    endpoint_url = f"{s3url.scheme}://{s3url.hostname}"
+    if s3url.port:
+        endpoint_url += f":{s3url.port}"
+    s3args["endpoint_url"] = endpoint_url
 
+    if s3url.username and s3url.password:
+        s3args["aws_access_key_id"] = s3url.username
+        s3args["aws_secret_access_key"] = s3url.password
+
+    s3 = boto3.client('s3', **s3args)
+    bucket = s3url.path[1:]
+
+    # ensure bucket exists
+    if bucket not in [b['Name'] for b in s3.list_buckets()['Buckets']]:
+        print("Creating bucket")
+        s3.create_bucket(Bucket=bucket)
+
+    # set up providers
+    providers = {"apt": AptProvider(dbcon, s3, bucket),
+                 "pypi": PypiProvider(dbcon, s3, bucket)}
+
+    # set up main web screen
     web = AppWeb(providers)
-
-    def validate_password(realm, username, password):
-        return True
 
     cherrypy.tree.mount(web, '/', {'/': {'tools.trailing_slash.on': False,
                                          'tools.db.on': True}})

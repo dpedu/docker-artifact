@@ -14,7 +14,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.types import String, Integer, Text, BOOLEAN
 from tempfile import TemporaryDirectory
 from threading import Thread
-from repobot.tables import Base, db, get_engine
+from repobot.tables import Base, db
 
 
 class AptRepo(Base):
@@ -143,7 +143,7 @@ def hashmany(data):
 
 
 class AptProvider(object):
-    def __init__(self, dbcon, s3client, bucket="aptprovider"):
+    def __init__(self, dbcon, s3client, bucket):
         self.db = dbcon
         self.s3 = s3client
         self.bucket = bucket
@@ -155,17 +155,12 @@ class AptProvider(object):
         cherrypy.tree.mount(AptWeb(self), "/repo/apt", {'/': {'tools.trailing_slash.on': False,
                                                               'tools.db.on': True}})
 
-        # ensure bucket exists
-        if bucket not in [b['Name'] for b in self.s3.list_buckets()['Buckets']]:
-            print("Creating bucket")
-            self.s3.create_bucket(Bucket=bucket)
-
         self.updater = Thread(target=self.sign_packages, daemon=True)
         self.updater.start()
 
     def sign_packages(self):
         Session = sqlalchemy.orm.sessionmaker(autoflush=True, autocommit=False)
-        Session.configure(bind=get_engine())
+        Session.configure(bind=self.db)
         while True:
             try:
                 work = self.queue.get(block=True, timeout=5)

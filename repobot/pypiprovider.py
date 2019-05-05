@@ -170,7 +170,7 @@ def copysha256(fin, fout):
 
 
 class PypiProvider(object):
-    def __init__(self, dbcon, s3client, bucket="aptprovider"):
+    def __init__(self, dbcon, s3client, bucket):
         self.db = dbcon
         self.s3 = s3client
         self.bucket = bucket
@@ -179,12 +179,6 @@ class PypiProvider(object):
 
         cherrypy.tree.mount(PipWeb(self), "/repo/pypi", {'/': {'tools.trailing_slash.on': False,
                                                                'tools.db.on': True}})
-
-        # ensure bucket exists
-        #TODO bucket creation should happen in server.py
-        if bucket not in [b['Name'] for b in self.s3.list_buckets()['Buckets']]:
-            print("Creating bucket")
-            self.s3.create_bucket(Bucket=bucket)
 
     def web_addpkg(self, reponame, name, version, fobj):
         repo = get_repo(db(), reponame)

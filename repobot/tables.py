@@ -11,10 +11,6 @@ def db():
     return cherrypy.request.db
 
 
-def get_engine(echo=False):
-    return sqlalchemy.create_engine('mysql+pymysql://root:root@localhost/repobot', echo=echo, encoding="utf8")
-
-
 class SAEnginePlugin(plugins.SimplePlugin):
     def __init__(self, bus, dbcon):
         plugins.SimplePlugin.__init__(self, bus)
@@ -60,8 +56,8 @@ class SATool(cherrypy.Tool):
     def commit_transaction(self):
         cherrypy.request.db = None
         try:
-            self.session.commit()  #TODO commit is issued even on endpoints with no queries
-        except:
+            self.session.commit()
+        except Exception:
             self.session.rollback()
             raise
         finally:
