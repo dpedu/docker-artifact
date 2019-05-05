@@ -232,7 +232,7 @@ class PypiProvider(object):
                 db().commit()
                 raise
 
-            yield json.dumps(metadata, indent=4)
+            return json.dumps(metadata, indent=4)
 
 
 @cherrypy.popargs("reponame", "distname", "filename")
@@ -256,20 +256,18 @@ class PipWeb(object):
         if reponame:
             repo = get_repo(db(), reponame, create_ok=False)
             if distname:
-                yield self.tpl.get_template("pypi/dist.html") \
+                return self.tpl.get_template("pypi/dist.html") \
                     .render(repo=repo,
                             pkgs=db().query(PipPackage).filter(PipPackage.repo == repo,
                                                                PipPackage.dist_norm == distname).
                             order_by(PipPackage.version).all(),
                             distname=normalize(distname))
-                return
 
-            yield self.tpl.get_template("pypi/repo.html") \
+            return self.tpl.get_template("pypi/repo.html") \
                 .render(repo=repo,
                         dists=self._get_dists(repo))
-            return
 
-        yield self.tpl.get_template("pypi/root.html") \
+        return self.tpl.get_template("pypi/root.html") \
             .render(repos=db().query(PipRepo).order_by(PipRepo.name).all())
 
     def _get_dists(self, repo):
@@ -285,20 +283,32 @@ class PipWeb(object):
         pkg = db().query(PipPackage).filter(PipPackage.repo == repo, PipPackage.fname == filename).first()
         if not pkg:
             raise cherrypy.HTTPError(404)
+
         dpath = os.path.join(self.base.basepath, "repos", repo.name, "wheels", pkg.fname[0], pkg.fname)
 
-        response = self.base.s3.get_object(Bucket=self.base.bucket, Key=dpath)
+        if str(cherrypy.request.method) == "DELETE":
+            db().delete(pkg)
+            files = self.base.s3.list_objects(Bucket=self.base.bucket, Prefix=dpath).get("Contents")
+            if files:
+                self.base.s3.delete_object(Bucket=self.base.bucket, Key=dpath)
+            db().commit()
+            return "OK"
 
-        cherrypy.response.headers["Content-Type"] = "binary/octet-stream"
-        cherrypy.response.headers["Content-Length"] = response["ContentLength"]
+        elif str(cherrypy.request.method) == "GET":
+            response = self.base.s3.get_object(Bucket=self.base.bucket, Key=dpath)
 
-        def stream():
-            while True:
-                data = response["Body"].read(65535)
-                if not data:
-                    return
-                yield data
+            cherrypy.response.headers["Content-Type"] = "binary/octet-stream"
+            cherrypy.response.headers["Content-Length"] = response["ContentLength"]
 
-        return stream()
+            def stream():
+                while True:
+                    data = response["Body"].read(65535)
+                    if not data:
+                        return
+                    yield data
 
-    handle_download._cp_config = {'response.stream': True}
+            return stream()
+        else:
+            raise cherrypy.HTTPError(405)
+
+    index._cp_config = {'response.stream': True}
