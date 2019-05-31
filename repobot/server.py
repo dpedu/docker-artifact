@@ -6,6 +6,7 @@ import sqlalchemy
 from botocore.client import Config as BotoConfig
 from repobot.aptprovider import AptProvider
 from repobot.pypiprovider import PypiProvider
+from repobot.tarprovider import TarProvider
 from repobot.tables import SAEnginePlugin, SATool
 from urllib.parse import urlparse
 
@@ -78,7 +79,8 @@ def main():
 
     # set up providers
     providers = {"apt": AptProvider(dbcon, s3, bucket),
-                 "pypi": PypiProvider(dbcon, s3, bucket)}
+                 "pypi": PypiProvider(dbcon, s3, bucket),
+                 "tar": TarProvider(dbcon, s3, bucket)}
 
     # set up main web screen
     web = AppWeb(providers)

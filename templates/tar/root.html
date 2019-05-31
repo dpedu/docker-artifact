@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tarball index</title>
+    <style type="text/css">
+        a {
+          display: block;
+        }
+    </style>
+  </head>
+  <body>
+    {%- for repo in repos %}
+    <a href="/repo/tar/{{ repo.name }}/">{{ repo.name }}</a>
+    {%- endfor %}
+  </body>
+</html>

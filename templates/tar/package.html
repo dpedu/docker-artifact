@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tarball index</title>
+    <style type="text/css">
+        a {
+          display: block;
+        }
+    </style>
+  </head>
+  <body>
+    {%- for pkg in pkgs %}
+    <a href="/repo/tar/{{ repo.name }}/{{ pkg.name }}/{{ pkg.fname }}#sha256={{ pkg.sha256 }}">{{ pkg.fname }}</a>
+    {%- endfor %}
+  </body>
+</html>

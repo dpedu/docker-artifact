@@ -82,7 +82,21 @@ wget -qO- http://host/repo/apt/reponame/dists/trusty/install | bash -x /dev/stdi
 Todo
 ----
 
+* CLI tool (for adding packages only)
+* 'Simple' cli tool (shell script fetchable from the server for adding packages)
+* Rpm Support
 * Auth
-* Delete packages
-* Support using existing GPG keys
+* Support using existing GPG keys for apt
 * Nicer UI
+* Json API
+* deb need to be able to slice package in repos by: component (arbitrary names), index (binary-amd64, binary-i386, source)
+* can already slice packages by: repo, dist
+* Move copysha256 somewhere generic
+* Have the server dictate the S3 root path to the provider plugins
+* Assert that submitted package names and file names are sane
+* Assert that submitted files smell like the type of file that is intended
+* Global & per-provider options:
+    * option to block overwriting
+* Standardize what is returned from provider's web_addpkg
+* Standardize some fields of provider's schema (name, version)
+* Delete repos if empty (with option to disable per provider)
