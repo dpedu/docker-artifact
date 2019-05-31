@@ -422,12 +422,17 @@ class AptFiles(object):
             raise cherrypy.HTTPError(404)
 
         dpath = os.path.join(self.base.basepath, package.blobpath)
+
+        if cherrypy.request.method == "DELETE":
+            db().delete(package)
+            self.base.s3.delete_object(Bucket=self.base.bucket, Key=dpath)
+            db().commit()
+            return
+
+        elif cherrypy.request.method not in ("GET", "HEAD"):
+            raise cherrypy.HTTPError(405)
+
         response = self.base.s3.get_object(Bucket=self.base.bucket, Key=dpath)
-
-        print("reading ", dpath)
-
-        cherrypy.response.headers["Content-Type"] = "application/x-debian-package"
-        cherrypy.response.headers["Content-Length"] = response["ContentLength"]
 
         def stream():
             while True:
@@ -435,6 +440,9 @@ class AptFiles(object):
                 if not data:
                     return
                 yield data
+
+        cherrypy.response.headers["Content-Type"] = "application/x-debian-package"
+        cherrypy.response.headers["Content-Length"] = response["ContentLength"]
 
         return stream()
 

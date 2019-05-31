@@ -17,7 +17,8 @@ setup(name='repobot',
       packages=['repobot'],
       entry_points={
           "console_scripts": [
-              "repobotd = repobot.server:main",
+              "repobotd = repobot.server:main",  # legacy
+              "artifactd = repobot.server:main",
               "rpcli = repobot.cli:main"
           ]
       },

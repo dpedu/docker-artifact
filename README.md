@@ -84,6 +84,7 @@ Todo
 
 * CLI tool (for adding packages only)
 * 'Simple' cli tool (shell script fetchable from the server for adding packages)
+* Centralize deleting packages
 * Rpm Support
 * Auth
 * Support using existing GPG keys for apt
@@ -100,3 +101,5 @@ Todo
 * Standardize what is returned from provider's web_addpkg
 * Standardize some fields of provider's schema (name, version)
 * Delete repos if empty (with option to disable per provider)
+* Centralize the jinja template environment
+    * need a way for providers to register jinja filters though
