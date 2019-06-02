@@ -4,7 +4,11 @@ docker-artifact
 
 Software repository server
 
-Artifactd provides an HTTP API for repository management. Currently, Python and Apt repositories are supported.
+Artifactd provides an HTTP API for repository management. Supported repository formats are:
+
+- Python (Pypi)
+- Apt
+- Generic tarball
 
 
 Quickstart

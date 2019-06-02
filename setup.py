@@ -24,5 +24,6 @@ setup(name='repobot',
       },
       include_package_data=True,
       install_requires=requirements,
-      package_data={'repobot': ['../templates/pypi/*.html']},
+      package_data={'repobot': ['../templates/pypi/*.html',
+                                '../templates/tar/*.html']},
       zip_safe=False)

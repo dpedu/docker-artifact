@@ -2,7 +2,7 @@ FROM ubuntu:bionic
 
 RUN apt-get update && \
     apt-get install -y python3-pip gpgv1 gnupg1 gpg sudo wget git && \
-    useradd artifactd
+    useradd artifact
 
 ADD . /tmp/code
 
