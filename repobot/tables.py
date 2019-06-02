@@ -52,6 +52,7 @@ class SATool(cherrypy.Tool):
     def bind_session(self):
         cherrypy.engine.publish('bind', self.session)
         cherrypy.request.db = self.session
+        cherrypy.request.db.connection().connection.connection.ping()
 
     def commit_transaction(self):
         cherrypy.request.db = None
