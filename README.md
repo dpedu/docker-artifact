@@ -49,6 +49,13 @@ apt-get update
 ```
 
 
+Upload generic tarball:
+
+```
+curl -F 'f=@cpython-3.8.0b1.tar.gz' 'http://host/addpkg?provider=tar&reponame=cpython&name=cpython&version=3.8.0b1'
+```
+
+
 CLI
 ---
 
@@ -61,6 +68,10 @@ Apt:
 Python:
 
 * `rpcli -s http://localhost:8080 upload -y pypi -f tensorflow-2.0.0a0-cp37-cp37m-manylinux1_x86_64.whl -r reponame -p tensorflow -i 2.0.0a0`
+
+Tarball:
+
+* `rpcli -s http://localhost:8080 upload -y tar -f ~/Downloads/cpython-3.8.0b1.tar.gz -r cpython -p cpython -i 3.8.0b1`
 
 
 Notes
